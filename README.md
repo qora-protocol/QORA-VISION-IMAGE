@@ -36,6 +36,10 @@ model-index:
 
 # QORA-Vision (Image) - Native Rust Image Encoder
 
+<img width="1395" height="926" alt="Screenshot 2026-02-27 174517" src="https://github.com/user-attachments/assets/40bbaed9-dcba-4499-928a-63a336189952" />
+
+Downlod 🤗: https://huggingface.co/qoranet/QORA-Vision-Image
+
 Pure Rust image understanding engine based on SigLIP 2. Zero-shot image classification, image embeddings, and image-text similarity. No Python runtime, no CUDA, no external dependencies.
 
 ## Overview
