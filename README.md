@@ -1,8 +1,40 @@
+---
+language:
+  - en
+  - multilingual
+license: apache-2.0
+tags:
+  - rust
+  - cpu-inference
+  - quantized
+  - q4
+  - image-classification
+  - zero-shot-classification
+  - image-embedding
+  - siglip
+  - vision-transformer
+  - pure-rust
+  - no-python
+  - no-cuda
+  - contrastive-learning
+base_model: google/siglip2-base-patch16-224
+library_name: qora
+pipeline_tag: zero-shot-image-classification
+model-index:
+  - name: QORA-Vision-Image
+    results:
+      - task:
+          type: zero-shot-image-classification
+        dataset:
+          name: ImageNet-1K
+          type: imagenet-1k
+        metrics:
+          - name: Zero-shot Accuracy
+            type: accuracy
+            value: 69.8
+---
+
 # QORA-Vision (Image) - Native Rust Image Encoder
-
-<img width="1395" height="926" alt="Screenshot 2026-02-27 174517" src="https://github.com/user-attachments/assets/40bbaed9-dcba-4499-928a-63a336189952" />
-
-## Downlod 🤗: https://huggingface.co/qoranet/QORA-Vision-Image
 
 Pure Rust image understanding engine based on SigLIP 2. Zero-shot image classification, image embeddings, and image-text similarity. No Python runtime, no CUDA, no external dependencies.
 
@@ -15,11 +47,12 @@ Pure Rust image understanding engine based on SigLIP 2. Zero-shot image classifi
 | **Vision Params** | ~93M |
 | **Text Params** | ~283M (256K vocab) |
 | **Quantization** | Q4 (4-bit symmetric, group_size=32) |
-| **Vision Model Size** | 58 MB (Q4 binary) |
+| **Model Size** | 210 MB (Q4 binary, vision + text) |
 | **Executable** | 4.4 MB |
 | **Input** | 224x224 RGB images (PNG/JPEG) |
 | **Output** | 768-dim embeddings + zero-shot classification scores |
-| **Platform** | Windows x86_64 (CPU-only) |
+| **Platform** | Windows x86_64, Linux x86_64, macOS aarch64 |
+| **GPU** | Vulkan (Win/Linux) / Metal (macOS) — auto-detect with CPU fallback |
 
 ## Architecture
 
@@ -80,7 +113,7 @@ Score = sigmoid(cosine_sim * exp(scale) + bias)
 ```
 siglip-model/
   qora-vision.exe      - 4.4 MB    Inference engine
-  model.qora-vision    - 58 MB     Vision encoder (Q4)
+  model.qora-vision    - 210 MB    Full model (vision + text, Q4)
   tokenizer.json       - 33 MB     Text tokenizer (256K vocab)
   config.json          - 611 B     QORA-branded config
   README.md            - This file
@@ -89,16 +122,13 @@ siglip-model/
 ## Usage
 
 ```bash
-# Image embedding
-qora-vision.exe siglip --image photo.jpg --model-path ./siglip-model/
-
-# Zero-shot classification
-qora-vision.exe siglip --image photo.jpg --labels "cat,dog,bird,car" --model-path ../SigLIP2/
+# Zero-shot classification (fast, from binary)
+qora-vision.exe siglip --load model.qora-vision --image photo.jpg --labels "cat,dog,bird,car"
 
 # Image-text similarity
-qora-vision.exe siglip --image photo.jpg --text "a photo of a sunset" --model-path ../SigLIP2/
+qora-vision.exe siglip --load model.qora-vision --image photo.jpg --text "a photo of a sunset"
 
-# Load from binary (vision encoder only)
+# Image embedding only
 qora-vision.exe siglip --load model.qora-vision --image photo.jpg
 ```
 
@@ -106,13 +136,10 @@ qora-vision.exe siglip --load model.qora-vision --image photo.jpg
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--model-path <path>` | `.` | Path to model directory (safetensors) |
 | `--image <path>` | - | Input image (PNG/JPEG) |
 | `--labels <list>` | - | Comma-separated labels for zero-shot |
 | `--text <string>` | - | Text for similarity scoring |
-| `--load <path>` | - | Load vision binary (.qora-vision) |
-| `--save <path>` | - | Save vision binary |
-| `--f16` | off | Use F16 weights instead of Q4 |
+| `--load <path>` | `model.qora-vision` | Path to .qora-vision binary |
 
 ## Published Benchmarks
 
@@ -204,13 +231,13 @@ All tests run with Q4 quantization on CPU.
 
 | Metric | Value |
 |--------|-------|
-| **Model Load** | ~25-30s (from safetensors) |
-| **Vision Forward** | ~31-42s (196 tokens, 12 layers) |
-| **Text Forward** | ~25s per label |
-| **Total (4 labels)** | ~120-150s |
+| **Binary Load** | ~115ms (full model, 210 MB) |
+| **Vision Forward** | ~13-20s (196 tokens, 12 layers) |
+| **Text Forward** | ~5s per label |
+| **Total (4 labels)** | ~33-55s |
 | **Memory (Vision Q4)** | 58 MB |
 | **Memory (Text Q4)** | 151 MB |
-| **Binary Save** | 41ms (58 MB) |
+| **Binary Save** | ~2s (210 MB) |
 
 ## QORA Model Family
 
@@ -222,5 +249,30 @@ All tests run with Q4 quantization on CPU.
 | **QORA-Vision (Video)** | ViViT Base | 89M | 60 MB | Video action classification |
 
 ---
+
+## Platform Support
+
+| Platform | Binary | GPU Backend | Status |
+|----------|--------|-------------|--------|
+| **Windows x86_64** | `qora-vision.exe` | Vulkan | Tested |
+| **Linux x86_64** | `qora-vision` | Vulkan | Supported |
+| **macOS aarch64** | `qora-vision` | Metal | Supported |
+
+## Building from Source
+
+```bash
+cargo build --release                       # CPU
+cargo build --release --features gpu        # GPU (Windows/Linux, Vulkan)
+cargo build --release --features gpu-metal  # GPU (macOS, Metal)
+```
+
+### Dependencies
+
+- `cortex` — Rust deep learning framework (GPU via wgpu/Vulkan/Metal)
+- `half` — F16 support
+- `image` — Image loading (PNG/JPEG)
+- `tokenizers` — HuggingFace tokenizer
+- `safetensors` — Weight loading
+- `serde_json` — Config parsing
 
 *Built with QORA - Pure Rust AI Inference*
