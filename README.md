@@ -1,38 +1,4 @@
----
-language:
-  - en
-  - multilingual
-license: apache-2.0
-tags:
-  - rust
-  - cpu-inference
-  - quantized
-  - q4
-  - image-classification
-  - zero-shot-classification
-  - image-embedding
-  - siglip
-  - vision-transformer
-  - pure-rust
-  - no-python
-  - no-cuda
-  - contrastive-learning
-base_model: google/siglip2-base-patch16-224
-library_name: qora
-pipeline_tag: zero-shot-image-classification
-model-index:
-  - name: QORA-Vision-Image
-    results:
-      - task:
-          type: zero-shot-image-classification
-        dataset:
-          name: ImageNet-1K
-          type: imagenet-1k
-        metrics:
-          - name: Zero-shot Accuracy
-            type: accuracy
-            value: 69.8
----
+
 
 # QORA-Vision (Image) - Native Rust Image Encoder
 
